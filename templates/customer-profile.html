@@ -1,0 +1,71 @@
+{% extends "base-xyno.html" %}
+{% block head2 %}
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css">
+<script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.8.4/moment.min.js"></script>
+<script type="text/javascript" src="//cdn.datatables.net/plug-ins/1.10.19/sorting/datetime-moment.js"></script>
+
+<script type="text/javascript">
+
+function deleteOrder(orderid){
+  var result = confirm("Can only be deleted from \"View Sales\" Page!");
+}
+
+  $(document).ready(function() {
+
+  $.fn.dataTable.moment('MMM DD, YYYY');
+  $('#tblx').DataTable({
+    'iDisplayLength': 500,
+    "lengthMenu": [10, 25, 50, 75, 100, 500, 1000],
+    'order': [
+      [0, 'desc']
+    ],
+  });
+  });
+
+</script>
+
+{% endblock %}
+
+{% block maindiv %}
+<div class="container">
+  <h2>
+    Customer Details:
+  </h2>
+  <div class="row">
+    <table>
+      <tr>
+        <td>Customer Name:</td>
+        <td>{{ cust.customer_name }}</td>
+      </tr>
+      <tr>
+        <td>Customer Phone:</td>
+        <td>{{ cust.customer_phone|default_if_none:"" }}</td>
+      </tr>
+
+      <tr>
+        <td>Customer Address: </td>
+        <td>{{ cust.customer_address|default_if_none:"" }}</td>
+      </tr>
+
+      <tr>
+        <td>Customer GSITN:</td>
+        <td>{{ cust.customer_gstin|default_if_none:"" }}</td>
+      </tr>
+    </table>
+
+  </div>
+
+  <hr>
+
+  <div>
+    <h2>
+      Customer Orders:
+    </h2>
+
+    {% include 'view-bills-table.html' %}
+
+  </div>
+</div>
+{% endblock %}

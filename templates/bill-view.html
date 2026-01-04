@@ -1,0 +1,29 @@
+{% extends "base-xyno.html" %}
+
+
+{% block head2 %}
+{% if manager %}
+<script type="text/javascript">
+jQuery(document).ready(function($){
+  var stat = $('#bill_status').val();
+  $('#statusSel').find('option[value="'+stat+'"]').attr('selected','selected');
+  $('#statusSel').on('change', function() {
+  $('#statusSel').css({"border":"4px solid", "border-color":"red"});
+  $('#savebutton').css("color","black");
+  $('#savebutton').attr('type','submit')
+  });
+  $('[id^=salesItem]').on('input',function(e){
+    $('#'+this.id+'Btn').css('visibility', 'visible');
+  });
+});
+
+</script>
+{% endif %}
+{%  endblock %}
+
+
+{% block maindiv %}
+
+{%  include "bill-view-section.html" %}
+
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends "base-xyno.html" %}
+{% block head2 %}
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css">
+<script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.8.4/moment.min.js"></script>
+<script type="text/javascript" src="//cdn.datatables.net/plug-ins/1.10.19/sorting/datetime-moment.js"></script>
+
+<script type="text/javascript">
+   var accounts = [{% for i in accounts %}'{{ i }}',{% endfor %}]
+
+
+  $(document).ready(function() {
+    $('#inputForm').trigger('reset');
+
+    if (accounts.length ==1) {
+      $("#id_account option:contains('"+accounts[0]+"')").prop('selected',true);
+      $("#id_account").closest("tr").hide(); 
+     
+    }
+       
+
+    $.fn.dataTable.moment('MMM DD, YYYY');
+    $('#tblx').DataTable({
+      'iDisplayLength': 100,
+      "lengthMenu": [10, 25, 50, 75, 100, 500, 1000],
+      'order': [
+        [0, 'desc']
+      ],
+      "columnDefs": [
+          {
+              "targets": [ 7 ],
+              "visible": false,
+              "searchable": true
+          },        
+      ],
+    });
+  });
+  function edit1(btndel) {
+    if (typeof(btndel) == "object") {
+        $('#id_customer_name').val($(btndel).closest("tr").find('td:eq(1)').children('p').text());
+        $('#id_customer_name').attr('readonly','true');
+        $('#reload1').remove();
+        $('#id_customer_name').after('&nbsp;&nbsp;<button id="reload1" onclick="$(\'#inputForm\').trigger(\'reset\');"><i class="fa fa-times"></i></button>');
+        $('#id_customer_phone').val($(btndel).closest("tr").find('td:eq(2)').text());
+        $('#id_customer_address').val($(btndel).closest("tr").find('td:eq(3)').text());
+        $('#id_customer_gstin').val($(btndel).closest("tr").find('td:eq(4)').text());
+        $('#id_customer_notes').val($(btndel).closest("tr").find('td:eq(6)').text());
+    } else {
+        return false;
+    }
+}
+
+</script>
+
+{% endblock %}
+
+{% block maindiv %}
+
+<h3>
+  Add New Booking:
+</h3>
+<div class="row">
+  <div class="col-md-6">
+    <div class="ui-widget">
+      <form action="" method="post" id="inputForm"  enctype="multipart/form-data">
+        {% csrf_token %}
+        <table>
+          <input id="reload1" style="display:none" />
+          {{ form }}
+        </table>
+        <input type="submit" value="Submit">
+      </form>
+    </div>
+  </div>
+</div>
+
+<br>
+<hr>
+
+<h2>
+  Bookings:
+</h2>
+
+<div>
+  <table border="1" style="background-color: white;" id="tblx" class="table table-striped table-bordered">
+    <thead>
+      <tr>
+        <th>Sl. No.</th>
+        <th>Date</th>
+        <th>Duration</th>
+        <th>Total Amount</th>
+        <th></th>
+        <th>Docs</th>
+        <th>Notes</th>
+        <th>Account</th>
+        <th>Created Time</th>
+        
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in result %}
+      <tr>
+        <td>{{ item.account_index }}</td>
+        <td><p>{{ item.customer_name }}</p><a href="#inputForm"><span class="badge badge-primary" style="float:right" onclick=edit1(this)><i class="fa fa-edit"></i>edit</span></a></td>
+        <td>{{ item.customer_phone }}</td>
+        <td>{{ item.customer_address }}</td>
+        <td>{{ item.customer_email }}</td>
+        <td>
+          {% if item.document1 %}
+          <a target="_blank" href="{{ item.document1.url }}"> ID 1 </a>{% endif %} 
+          {% if item.document2 %}
+          <a target="_blank" href="{{ item.document2.url }}"> ID 2 </a>{% endif %}
+          {% if item.document2 %}
+          <a target="_blank" href="{{ item.document2.url }}"> ID 2 </a>{% endif %}
+        </td>
+        <td>{{ item.customer_notes }}</td>
+        <td>{{ item.account }}</td>
+        <td>{{ item.timeCreated }} </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

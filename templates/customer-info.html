@@ -1,0 +1,183 @@
+{% extends "base-xyno.html" %}
+{% block head2 %}
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css">
+<script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.8.4/moment.min.js"></script>
+<script type="text/javascript" src="//cdn.datatables.net/plug-ins/1.10.19/sorting/datetime-moment.js"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+<script type="text/javascript">
+
+
+
+  $(document).ready(function() {
+    $('#inputForm').trigger('reset');
+
+    // Open modal on button click
+    $('#addBookingButton').click(function() {
+      $('#addBookingModal').modal('show');
+    });
+
+    // Initialize datepicker for checkin_date
+    $('#id_checkin_date').datepicker({
+      dateFormat: 'yy-mm-dd',
+      defaultDate: new Date(),
+    });
+  });
+  function edit1(btndel) {
+    const customerId = $(btndel).closest("tr").data("id");
+    fetch(`/get-customer-data/${customerId}/`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const customer = data.data;
+          $('#id_customer_name').val(customer.customer_name);
+          $('#id_customer_phone').val(customer.customer_phone);
+          $('#id_customer_address').val(customer.customer_address);
+          $('#id_customer_email').val(customer.customer_email);
+          $('#id_customer_notes').val(customer.customer_notes);
+          $('#id_checkin_date').val(customer.checkin_date);
+          $('#id_number_of_days').val(customer.number_of_days);
+          $('#id_customer2_name').val(customer.customer2_name);
+          $('#addBookingModal').modal('show');
+        } else {
+          alert(data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while fetching customer data.');
+      });
+  }
+
+function deleteEntry(customerId) {
+    if (confirm('Are you sure you want to delete this entry?')) {
+      fetch(`/delete-customer/${customerId}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert(data.message);
+            location.reload();
+          } else {
+            alert(data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while deleting the entry.');
+        });
+    }
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === name + '=') {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+</script>
+
+{% endblock %}
+
+{% block maindiv %}
+
+<h2>
+  Bookings:
+</h2>
+
+<div>
+  <button id="addBookingButton" class="btn btn-primary mb-3">Add Booking</button>
+
+  <!-- Modal for adding booking -->
+  <div id="addBookingModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Booking</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="inputForm" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Save</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <table border="1" style="background-color: white;" id="tblx" class="table table-striped table-bordered">
+    <thead>
+      <tr>
+        <th>Sl. No.</th>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Address</th>
+        <th>Email</th>
+        <th>Docs</th>
+        <th>Notes</th>
+        <th>Account</th>
+        <th>Booking Date</th>
+        <th>Duration (Days)</th>
+        <th>Actions</th>
+        
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in result %}
+      <tr data-id="{{ item.id }}">
+        <td>{{ item.account_index }}</td>
+        <td>
+          <p>{{ item.customer_name }}</p>
+          {% if item.customer2_name %}
+          <p>{{ item.customer2_name }}</p>
+          {% endif %}
+        </td>
+        <td>{{ item.customer_phone }}</td>
+        <td>{{ item.customer_address }}</td>
+        <td>{{ item.customer_email }}</td>
+        <td>
+          {% if item.document1 %}
+          <a target="_blank" href="{{ item.document1.url }}"> ID 1 </a>{% endif %} 
+          {% if item.document2 %}
+          <a target="_blank" href="{{ item.document2.url }}"> ID 2 </a>{% endif %}
+          {% if item.document3 %}
+          <a target="_blank" href="{{ item.document3.url }}"> ID 3 </a>{% endif %}
+        </td>
+        <td>{{ item.customer_notes }}</td>
+        <td>{{ item.account }}</td>
+        <td>{{ item.checkin_date }}</td>
+        <td>{{ item.number_of_days }}</td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="edit1(this)">
+            <i class="fa fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="deleteEntry('{{ item.id }}')">
+            <i class="fa fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

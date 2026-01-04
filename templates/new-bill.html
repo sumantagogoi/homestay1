@@ -1,0 +1,481 @@
+{% extends "base-xyno.html" %}
+{% block head2 %}
+
+<script type="text/javascript">
+  function addRow() {
+    if (document.getElementById("additem").value == "1" &&
+      document.getElementById("quant").value != "" &&
+      document.getElementById("price").value != ""  &&
+      document.getElementById("gst_inc_picked").value == "1" ) {
+      // Find a <table> element with id="myTable":
+      document.getElementById("tablediv").style.visibility = "visible";
+      var table = document.getElementById("order-table").getElementsByTagName('tbody')[0];
+      var rr = document.getElementById("order-table").rows.length;
+      // Create an empty <tr> element and add it to the 1st position of the table:
+      var row = table.insertRow(-1);
+
+      // Insert new cells (<td> elements) at the 1st and 2nd position of the "new" <tr> element:
+      var cell1 = row.insertCell(0);
+      var cell2 = row.insertCell(1);
+      var cell3 = row.insertCell(2);
+      var cell4 = row.insertCell(3);
+      var cell5 = row.insertCell(4);
+      var cell6 = row.insertCell(5);
+      var cell7 = row.insertCell(6);
+      var cell8 = row.insertCell(7);
+
+      var price = document.getElementById("price").value;
+      var gst_rate = (document.getElementById("gstrate").value != "") ? document.getElementById("gstrate").value : 0;
+      if ($('#id_gst_included option:selected').val() == "True"){
+        price = price/(1+gst_rate/100);
+      }
+
+      // Add some text to the new cells:
+      cell1.innerHTML = rr;
+      cell2.innerHTML = document.getElementById("ItemSearch").value;
+      cell3.innerHTML = document.getElementById("quant").value;
+      cell4.innerHTML = (price*100/100).toFixed(2);
+      cell5.innerHTML = gst_rate;
+      cell6.innerHTML = $('#discount').val();
+      cell7.innerHTML = (document.getElementById("quant").value*price*(1+gst_rate/100) - cell6.innerHTML).toFixed(2);
+      cell8.innerHTML = '<button class="btn btn-info" onclick="deleteRow(' + rr + ')">Delete Item </button>';
+
+      document.getElementById("ItemSearch").value = "";
+      document.getElementById("quant").value = "";
+      document.getElementById("additem").value = "0";
+      document.getElementById("price").value = "";
+      $('#gstrate').val("");
+      $('#ItemSearch').css("border-color", "red");
+      $('#rewrite').css("visibility", "hidden");
+      $('#quant').css("border-color", "red");
+      $('#price').css("border-color", "red");
+      document.getElementById("ItemSearch").readOnly = false;
+      $("#id_gst_included").prop("selectedIndex", 0);
+      $("#gst_inc_picked").val("0");
+      $('#gtotal').val((parseFloat($('#gtotal').val()) + parseFloat(cell7.innerHTML)).toFixed(2));
+      var gst = parseFloat(cell7.innerHTML) * (parseFloat(cell5.innerHTML) / (100 + parseFloat(cell5.innerHTML)));
+      $('#sgst').val((parseFloat($('#sgst').val()) + gst / 2).toFixed(2));
+      $('#cgst').val($('#sgst').val());
+      $('.unit').each(function(x) {
+        $(this).text("Units");
+      });
+      $("#id_gst_included").css({"border-color":"red"});
+      $('#discount').val(0);
+    }
+  }
+
+  function deleteRow(delrow) {
+    document.getElementById("order-table").deleteRow(delrow);
+    var num = 1;
+    $('#gtotal').val("0");
+    $('#sgst').val("0");
+    $('#cgst').val("0");
+    $("#order-table > tbody > tr").each(function() {
+      var self = $(this);
+      self.find("td:eq(0)").text(num);
+      self.find("td:eq(6)").html('<button class="btn btn-info" onclick="deleteRow(' + num + ')">Delete Item </button>');
+      num = num + 1;
+      $('#gtotal').val(parseFloat(self.find("td:eq(5)").text()) + parseFloat($('#gtotal').val()));
+      var gst = parseFloat(self.find("td:eq(5)").text()) * (parseFloat(self.find("td:eq(4)").text()) / (100 + parseFloat(self.find("td:eq(4)").text())));
+      $('#sgst').val((parseFloat($('#sgst').val()) + gst / 2).toFixed(2));
+      $('#cgst').val($('#sgst').val());
+    });
+  }
+
+  $(document).ready(function() {
+    $('#inputForm2').trigger("reset");
+    $('#ItemSearch').val("");
+    $('#quant').val("");
+    $('#price').val("");
+    $('#gstrate').val("");
+    $('#sgst').val("0");
+    $('#cgst').val("0");
+    $('#gtotal').val("0");
+    $("#id_gst_included").prop("selectedIndex", 0);
+    $("#gst_inc_picked").val("0");
+    $("#discount").val("0");
+
+    $('#CustomerSearch').on('input', function(e) {
+      $('#CustomerSearch').css("border-color", "#1E90FF");
+    });
+
+    $("#id_gst_included").on('change', function() {
+      $("#id_gst_included").css({"border-color":"#1E90FF"});
+      $("#gst_inc_picked").val("1");
+    });
+
+    {% if adding %}
+    $('#cust_id').val("{{ customer }}");
+    $("#newOrder").show();
+    {% else %}
+    $('#cust_id').val("");
+    {% endif %}
+
+    $("#CustomerSearch").autocomplete({
+      source: function(request, response) {
+        var search = $('#CustomerSearch').val();
+        var stuff = {
+          'search': search,
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        };
+        $.ajax({
+          url: "/invoice/search-customers/",
+          dataType: "jsonp",
+          data: stuff,
+          success: function(data) {
+            response(data);
+          }
+        });
+      },
+      minLength: 1,
+      select: function(event, ui) {
+        var stuff = {
+          'name': ui.item.label,
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        };
+        $.ajax({
+          url: "/invoice/get-cust-details/",
+          dataType: "jsonp",
+          data: stuff,
+          success: function(data) {
+            $("#CustomerSearch").prop("readonly", true);
+            $('.cust-hid-data').css('visibility', 'visible');
+            $('#reload1').css('visibility', 'visible');
+            $('#cust_phone').val(data[2]);
+            $('#cust_gstin').val(data[3]);
+            $('#cust_address').val(data[4]);
+            $('#cust_notes').val(data[5]);
+            $('#cust_id').val(data[0]);
+            $('#custClickd').val("1");
+            $("#CustomerSearch").css("border-color", "#1E90FF");
+          }
+        });
+      }
+    });
+
+    $("#ItemSearch").autocomplete({
+
+      source: function(request, response) {
+        var search = $('#ItemSearch').val();
+        var stuff = {
+          'search': search,
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        };
+        $.ajax({
+          url: "/invoice/search-inventory/",
+          dataType: "jsonp",
+          data: stuff,
+          success: function(data) {
+            response(data);
+          }
+        });
+      },
+      minLength: 1,
+      select: function(event, ui) {
+        var stuff = {
+          'name': ui.item.label,
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        };
+
+        $.ajax({
+          url: "/invoice/get-item-details/",
+          dataType: "jsonp",
+          data: stuff,
+          success: function(data) {
+            $('#additem').val("1");
+            $('#ItemSearch').val(ui.item.label);
+            $('#ItemSearch').css("border-color", "#1E90FF");
+            $("#id_gst_included").css({"border-color":"#1E90FF"});
+            $("#gst_inc_picked").val("1");
+            $('#id_gst_included option[value="'+data[4]+'"]').prop('selected',true);
+            $('#price').val(data[2]);
+            $('#price').css("border-color", "#1E90FF");
+            $('#gstrate').val(data[3]);
+            $('.unit').each(function(x) {
+              $(this).text(data[1]);
+            });
+          }
+        });
+      }
+    });
+
+    $('#quant').on('input', function(e) {
+      $('#quant').css("border-color", "#1E90FF")
+    });
+
+    $('#price').on('input', function(e) {
+      $('#price').css("border-color", "#1E90FF")
+    });
+
+    $('#ItemSearch').on('input', function(e) {
+      $('#ItemSearch').css("border-color", "#1E90FF");
+      $('#additem').val("1");
+      $('#CustomerSearch').attr("readonly", true);
+    });
+
+    $("#submitAll").click(function() {
+      var bill = "";
+      stuff = [];
+      $("#submitAll").css('visibility', 'hidden');
+      $("#order-table > tbody > tr").each(function() {
+        var self = $(this);
+        var quantity = self.find("td:eq(2)").text().trim();
+        stuff.push({
+          'bill_number': "0",
+          'quantity': quantity,
+          'uuid': $("#uuid").val(),
+          'customer': $('#cust_id').val(),
+          'salesperson': $('#salesperson').val(),
+          'price_per_unit': self.find("td:eq(3)").text().trim(),
+          'item': self.find("td:eq(1)").text().trim(),
+          'gst_rate': self.find("td:eq(4)").text().trim(),
+          'discount_on_mrp': self.find("td:eq(5)").text().trim(),
+        });
+      });
+      stuff = JSON.stringify(stuff);
+      $.ajax({
+        type: "POST",
+        url: "/invoice/new-bill/",
+        dataType: "json",
+        data: {
+          stuff,
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
+        success: function(data) {
+          bill = data.bill_number;
+        }
+      });
+      $("#order-table tr").remove();
+      $("#order-table > tbody:last-child").append('<tr><td colspan="8" class="badge badge-success"> Order Logged!</td></tr>');
+
+      function reload1() {
+        if (bill != "") {
+          window.location.replace('/invoice/bill/' + bill + '/');
+        } else {
+          setTimeout(function() {
+            reload1();
+          }, 500);
+        }
+      }
+      reload1();
+    });
+
+    $("#showOrder").click(function() {
+      if ($("#custClickd").val() != "1") {
+        var stuff = {
+          'headless': "true",
+          'customer_name': $('#CustomerSearch').val(),
+          'customer_phone': $('#cust_phone').val(),
+          'customer_address': $('#cust_address').val(),
+          'customer_gstin': $('#cust_gstin').val(),
+          'customer_notes': $('#cust_notes').val(),
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        };
+        $.ajax({
+          type: "POST",
+          url: "/invoice/customers/",
+          dataType: "json",
+          data: stuff,
+          success: function(data) {
+            $('#cust_id').val(data.customer_id);
+          }
+        });
+      }
+      $("#newOrder").show();
+    });
+  });
+
+  function rewrite() {
+    document.getElementById("ItemSearch").value = "";
+    document.getElementById("quant").value = "";
+    document.getElementById("additem").value = "0";
+    document.getElementById("price").value = "";
+    document.getElementById("gstrate").value = "";
+    document.getElementById("ItemSearch").readOnly = false;
+    $('#ItemSearch').css("border-color", "red");
+    $('#quant').css("border-color", "red");
+    $('#rewrite').css("visibility", "hidden");
+  }
+</script>
+
+<style>
+  .cust-hid-data {
+    visibility: hidden;
+  }
+
+  .show-data {
+    visibility: visible;
+  }
+
+  .row {
+    margin-top: 30px;
+  }
+</style>
+
+{% endblock %}
+
+{% block maindiv %}
+<div class="row">
+  <div class="col-md-6">
+    <div class="ui-widget">
+      <form action="" method="post" id="inputForm2">
+        {% csrf_token %}
+        <table>
+          <tr class="show-data">
+            <td> Customer Name:</td>
+            <td>
+              {% if adding %}<input type="text" name="customer_name" value="ADDING TO OLD BILL" readonly/>{% else %}
+              <input type="text" name="customer_name" value="" id="CustomerSearch" size="40" style="border: 3px solid; border-color: red; border-radius: 5px;" />
+              {% endif %}
+              &nbsp;&nbsp;<button style="visibility: hidden" id="reload1" onclick="location.reload()"><i class="fa fa-times"></i></button>
+              <input type="hidden" name="salesperson" id="salesperson" value="{{ username }}" />
+              <input type="hidden" name="custClickd" id="custClickd" value="0" />
+              <input type="hidden" value="" id="cust_id" readonly />
+              <input type="hidden" id="uuid" value="{{ uuid }}" />
+            </td>
+          </tr>
+          <tr>
+            <td> Phone: </td>
+            <td><input type="text" id="cust_phone" /></td>
+          </tr>
+          <tr>
+            <td> GSTIN: </td>
+            <td><input type="text" id="cust_gstin" /></td>
+          </tr>
+          <tr>
+            <td> Address: </td>
+            <td><input type="text" id="cust_address" /></td>
+          </tr>
+          <tr>
+            <td> Notes: </td>
+            <td><input type="text" id="cust_notes" /></td>
+          </tr>
+        </table>
+      </form>
+      <table>
+        <tr>
+          <td> </td>
+          <td><button class="btn btn-warning" id="showOrder"{% if adding %}disabled{% endif %}>Create new Order</button></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<div id="newOrder" style="display:none">
+  <div class="row">
+    <div class="col-md-4">
+      <span>Item:</span><br>
+      <input type="text" name="Item" value="" id="ItemSearch" size="45" style="border: 3px solid;
+      border-color: red;
+      border-radius: 5px;" />
+      <input type="hidden" id="additem" value="0" />
+      <button onclick="rewrite()" style="visibility:hidden" id="rewrite"><i class="fa fa-times"></i></button>
+    </div>
+
+    <div class="col-md-2">
+      <span>GST Rate:</span><br>
+      <input type="text" id="gstrate" min="0" max="99" value="" size="5" maxlength="2" pattern="[0-9]+" oninput="this.value = this.value.replace(/[^0-9.]/g, ''); this.value = this.value.replace(/(\..*)\./g, '$1');" />
+      <span>% (Default: 0% GST)</span>
+    </div>
+    <div class="col-md-6">
+
+    </div>
+
+  </div>
+  <hr>
+  <div class="row">
+    <div class="col-md-2">
+      <span class="badge badge-success">Quantity:</span><br>
+      <input type="text" id="quant" value="" size="10" required
+      oninput="this.value = this.value.replace(/[^0-9.]/g, ''); this.value = this.value.replace(/(\..*)\./g, '$1');"
+      style="border: 3px solid;
+      border-color: red;
+      border-radius: 5px;" />
+      <span class="unit">units</span>(s)
+    </div>
+    <div class="col-md-2">
+      Price per <span class="unit">Unit:</span><br>
+      <input type="text" name="price" id="price" value="" size="10"
+      oninput="this.value = this.value.replace(/[^0-9.]/g, ''); this.value = this.value.replace(/(\..*)\./g, '$1');"
+      style="border: 3px solid;
+      border-color: red;
+      border-radius: 5px;" />
+    </div>
+    <div class="col-md-2">
+      GST in Price:<br>
+      <select name="gst_included" required="" id="id_gst_included"
+      style="border: 3px solid;
+      border-color: red;
+      border-radius: 5px;">
+        <option value="" selected>---------</option>
+        <option value="True">GST Included</option>
+        <option value="False">GST Extra</option>
+      </select>
+      <input type="hidden" id="gst_inc_picked" value="0" />
+    </div>
+    <div class="col-md-2">
+      Discount on MRP<br>
+      <input type="text" name="discount" id="discount" value="0" size="10"
+      oninput="this.value = this.value.replace(/[^0-9.]/g, ''); this.value = this.value.replace(/(\..*)\./g, '$1');"
+      style="border: 3px solid;
+      border-color: blue;
+      border-radius: 5px;" />
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-primary" id="addRowBtn" onclick="addRow()">Add Item</button>
+    </div>
+    <div class="col-md-2"></div>
+  </div>
+</div>
+
+<div style="visibility: hidden; border-width:5px" id="tablediv">
+  <div class="row">
+    <div class="col-md-12">
+      <table border="1" id="order-table">
+        <thead>
+          <tr>
+            <th>Sl. No.</th>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Price per unit</th>
+            <th>GST % Rate</th>
+            <th>Discount on MRP</th>
+            <th>Total</th>
+            <th>&nbsp;</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+    <div class="col-md-12"><br>
+      <table>
+        <tr>
+          <td>SGST: <i class="fa fa-inr"></i> </td>
+          <td><input type="text" id="sgst" value="" readonly /></td>
+        </tr>
+        <tr>
+          <td>CGST: <i class="fa fa-inr"></i> </td>
+          <td><input type="text" id="cgst" value="" readonly /></td>
+        </tr>
+        <tr>
+          <td><b>Grand Total: <i class="fa fa-inr"></i> </b></td>
+          <td><input type="text" id="gtotal" value="" readonly /></td>
+        </tr>
+      </table>
+    </div>
+    <div class="col-md-12"><br>
+    </div>
+    <div class="col-md-12">
+      <button class="btn btn-secondary" id="submitAll">Confirm Bill</button>
+    </div>
+    <div class="col-md-12"><br>
+    </div>
+    <div class="col-md-12"><br>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale={% if scale %}{{ scale }}{% else %}1{% endif %}">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <link rel="shortcut icon" href="/static/favicon.ico">
+  <meta name="vapid-key" content="{{ vapid_key }}">
+  {% if user.id %}
+      <meta name="user_id" content="{{ user.id }}">
+  {% endif %}
+  <title>
+    {{ title }}
+  </title>
+
+  {% block head %}
+  {% endblock %}
+
+
+</head>
+
+<body class="hold-transition sidebar-mini">
+
+
+  {% block content %}
+  {% endblock %}
+
+
+  {% block footer %}
+  {% endblock %}
+
+<!-- <script src="/static/js/registerSw.js"></script> -->
+
+</body>
+
+</html>
